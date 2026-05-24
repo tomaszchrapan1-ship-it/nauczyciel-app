@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nauczyciel — Aplikacja do nauki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inconsolata:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e0e0e;
+    --paper: #f5f0e8;
+    --paper-dark: #ede7d6;
+    --accent: #c8401a;
+    --accent-soft: #f0e0da;
+    --muted: #7a7060;
+    --border: #d4cbb8;
+    --stage-1: #1a6b3a;
+    --stage-2: #1a4a7a;
+    --stage-3: #7a3a1a;
+    --stage-4: #4a1a7a;
+    --stage-5: #c8401a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inconsolata', monospace;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--ink);
+    color: var(--paper);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .stage-indicator {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+  }
+
+  .stage-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #444;
+    transition: all 0.3s;
+  }
+
+  .stage-dot.active { background: var(--accent); transform: scale(1.4); }
+  .stage-dot.done { background: #888; }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 57px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    border-right: 2px solid var(--ink);
+    background: var(--paper-dark);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    gap: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .sidebar-section h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .topic-input {
+    width: 100%;
+    background: var(--paper);
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    padding: 0.6rem 0.8rem;
+    font-family: 'Inconsolata', monospace;
+    font-size: 0.9rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .topic-input:focus { border-color: var(--ink); }
+
+  .btn-start {
+    width: 100%;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 4px;
+    padding: 0.7rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  .btn-start:hover { background: var(--accent); }
+  .btn-start:disabled { background: #aaa; cursor: not-allowed; }
+
+  .stages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .stage-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .stage-item.active {
+    background: var(--paper);
+    color: var(--ink);
+    font-weight: 500;
+    border-left: 3px solid var(--accent);
+  }
+
+  .stage-item.done { color: var(--muted); text-decoration: line-through; }
+
+  .stage-icon { font-size: 1rem; width: 1.2rem; text-align: center; }
+
+  .profile-box {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.7rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .profile-box strong { color: var(--ink); display: block; margin-bottom: 0.3rem; }
+
+  /* ── CHAT AREA ── */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .message {
+    max-width: 780px;
+    width: 100%;
+  }
+
+  .message.user { align-self: flex-end; }
+  .message.assistant { align-self: flex-start; }
+
+  .message-meta {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .message.user .message-meta { text-align: right; }
+
+  .message-bubble {
+    padding: 1rem 1.2rem;
+    border-radius: 2px;
+    line-height: 1.7;
+    font-size: 0.92rem;
+  }
+
+  .message.assistant .message-bubble {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--accent);
+  }
+
+  .message.user .message-bubble {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 2px;
+  }
+
+  /* Stage badges in messages */
+  .stage-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 2px;
+    margin-bottom: 0.6rem;
+  }
+
+  .badge-0 { background: #e8f4ec; color: var(--stage-1); }
+  .badge-1 { background: #dce8f5; color: var(--stage-2); }
+  .badge-2 { background: #f5e8dc; color: var(--stage-3); }
+  .badge-3 { background: #ecdcf5; color: var(--stage-4); }
+  .badge-4 { background: #f5e0da; color: var(--stage-5); }
+
+  /* Markdown-like rendering */
+  .message-bubble h1, .message-bubble h2, .message-bubble h3 {
+    font-family: 'Syne', sans-serif;
+    margin: 0.8rem 0 0.4rem;
+  }
+  .message-bubble h1 { font-size: 1.1rem; }
+  .message-bubble h2 { font-size: 1rem; }
+  .message-bubble h3 { font-size: 0.9rem; }
+  .message-bubble p { margin: 0.4rem 0; }
+  .message-bubble ul, .message-bubble ol { margin: 0.4rem 0 0.4rem 1.2rem; }
+  .message-bubble li { margin: 0.2rem 0; }
+  .message-bubble strong { font-weight: 600; }
+  .message-bubble em { font-style: italic; color: var(--muted); }
+  .message-bubble blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 0.4rem 0.8rem;
+    margin: 0.6rem 0;
+    background: var(--paper-dark);
+    font-style: italic;
+  }
+  .message-bubble code {
+    font-family: 'Inconsolata', monospace;
+    background: var(--paper-dark);
+    padding: 0.1rem 0.3rem;
+    border-radius: 2px;
+    font-size: 0.88em;
+  }
+  .message-bubble pre {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0.8rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0.6rem 0;
+  }
+  .message-bubble pre code { background: none; padding: 0; color: inherit; }
+  .message-bubble hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0.8rem 0;
+  }
+
+  /* ── CHOICE BUTTONS ── */
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+  }
+
+  .choice-btn {
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    padding: 0.5rem 1rem;
+    font-family: 'Inconsolata', monospace;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+
+  .choice-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .choice-btn.selected {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .choice-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    border-top: 2px solid var(--ink);
+    padding: 1rem 2rem;
+    background: var(--paper-dark);
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-end;
+  }
+
+  .input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .text-input {
+    width: 100%;
+    background: var(--paper);
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    font-family: 'Inconsolata', monospace;
+    font-size: 0.92rem;
+    color: var(--ink);
+    outline: none;
+    resize: none;
+    min-height: 48px;
+    max-height: 140px;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+
+  .text-input:focus { border-color: var(--ink); }
+
+  .btn-send {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-send:hover { background: #a33315; }
+  .btn-send:disabled { background: #ccc; cursor: not-allowed; }
+
+  /* ── TYPING INDICATOR ── */
+  .typing {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 0.8rem 1.2rem;
+    background: white;
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--accent);
+    width: fit-content;
+    border-radius: 2px;
+  }
+
+  .typing-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* ── PDF DOWNLOAD ── */
+  .pdf-banner {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 1rem 1.5rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .pdf-banner p { font-size: 0.88rem; line-height: 1.4; }
+  .pdf-banner strong { font-family: 'Syne', sans-serif; display: block; margin-bottom: 0.2rem; }
+
+  .btn-pdf {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.6rem 1.2rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+
+  .btn-pdf:hover { background: #a33315; }
+
+  /* ── WELCOME SCREEN ── */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  .welcome-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  .welcome-title span { color: var(--accent); }
+
+  .welcome-sub {
+    color: var(--muted);
+    font-size: 0.95rem;
+    max-width: 420px;
+    line-height: 1.6;
+  }
+
+  .welcome-steps {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .welcome-step {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+    font-size: 0.82rem;
+    text-align: left;
+    width: 160px;
+  }
+
+  .welcome-step-icon { font-size: 1.3rem; margin-bottom: 0.3rem; }
+  .welcome-step-label { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.75rem; color: var(--muted); }
+
+  /* ── MOBILE ── */
+  @media (max-width: 680px) {
+    .sidebar { display: none; }
+    .messages { padding: 1rem; }
+    .input-area { padding: 0.75rem 1rem; }
+    .welcome-title { font-size: 1.8rem; }
+    .welcome-step { width: 140px; }
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Nauc<span>zy</span>ciel</div>
+  <div class="stage-indicator" id="stageDots"></div>
+</header>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>Nowa lekcja</h3>
+      <input class="topic-input" id="topicInput" type="text" placeholder="Temat lekcji..." />
+      <button class="btn-start" id="startBtn" onclick="startLesson()">Rozpocznij lekcję →</button>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Etapy lekcji</h3>
+      <div class="stages-list" id="stagesList">
+        <div class="stage-item" data-stage="0"><span class="stage-icon">📋</span> Profil ucznia</div>
+        <div class="stage-item" data-stage="1"><span class="stage-icon">📘</span> Analogia</div>
+        <div class="stage-item" data-stage="2"><span class="stage-icon">🤔</span> Pytania sokratejskie</div>
+        <div class="stage-item" data-stage="3"><span class="stage-icon">✅</span> Quiz</div>
+        <div class="stage-item" data-stage="4"><span class="stage-icon">✍️</span> Tekst z lukami</div>
+        <div class="stage-item" data-stage="5"><span class="stage-icon">📄</span> Ściąga PDF</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" id="profileSection" style="display:none">
+      <h3>Twój profil</h3>
+      <div class="profile-box" id="profileBox"></div>
+    </div>
+  </aside>
+
+  <!-- Chat -->
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcomeScreen">
+        <div class="welcome-title">Ucz się<br>z <span>Nauczycielem</span></div>
+        <p class="welcome-sub">Wpisz temat lekcji i naciśnij „Rozpocznij". Nauczyciel poprowadzi Cię przez cztery etapy — od analogii do ściągi PDF.</p>
+        <div class="welcome-steps">
+          <div class="welcome-step"><div class="welcome-step-icon">📘</div><div class="welcome-step-label">Krok 1</div>Analogia z Twojego życia</div>
+          <div class="welcome-step"><div class="welcome-step-icon">🤔</div><div class="welcome-step-label">Krok 2</div>Pytania sokratejskie</div>
+          <div class="welcome-step"><div class="welcome-step-icon">✅</div><div class="welcome-step-label">Krok 3</div>Quiz wiedzy</div>
+          <div class="welcome-step"><div class="welcome-step-icon">📄</div><div class="welcome-step-label">Krok 4</div>Ściąga do wydruku</div>
+        </div>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea class="text-input" id="userInput" placeholder="Napisz odpowiedź..." rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      </div>
+      <button class="btn-send" id="sendBtn" onclick="sendMessage()" title="Wyślij">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+const API_URL = '/api/chat';
+let messages = [];
+let currentStage = -1;
+let isLoading = false;
+let lessonData = { topic: '', profile: '', level: '', notes: [] };
+let pdfGenerated = false;
+
+const SYSTEM_PROMPT = `Jesteś Nauczycielem prowadzącym lekcję metodą czterech etapów. Zawsze po polsku.
+
+METODA — cztery etapy (+ profil):
+
+KROK 0 — PROFIL UCZNIA
+Zanim zaczniesz, zbierz dwie informacje:
+1. Otwarte pytanie o doświadczenia ucznia (zawód, hobby, życie) — swobodna odpowiedź tekstowa. To posłuży do personalizacji analogii.
+2. Poziom znajomości tematu — zaprezentuj jako wybór:
+   [WYBÓR: Nie znam — słyszę po raz pierwszy | Słyszałem/am — kojarzę ogólnie | Znam podstawy — rozumiem główne pojęcia | Znam dobrze — chcę pogłębić]
+
+Po zebraniu profilu zapamiętaj go i używaj do personalizacji przez całą lekcję.
+
+ETAP 1 — ANALOGIA (od ogółu do szczegółu)
+1. Przedstaw temat — czym jest i po co (ogół).
+2. Osadź w szerszym kontekście (obraz całości).
+3. Stwórz analogię ZAKORZENIONĄ w opisanych doświadczeniach ucznia — nie generyczną.
+4. Rozwiń analogię, wskaż co odpowiada czemu.
+5. Podsumowanie (2–4 zdania), od ogółu do szczegółu.
+Przejście do Etapu 2: automatyczne.
+
+ETAP 2 — PYTANIA SOKRATEJSKIE
+- Jedno pytanie naraz, czekaj na odpowiedź.
+- Każde pytanie kończy się BINARNYM WYBOREM A/B:
+  [WYBÓR: A) opcja bliższa prawdy | B) typowe nieporozumienie]
+- Kolejność: mechanizm → przyczyny → konsekwencje → wyjątki.
+- 3–5 pytań. Dostosuj trudność do jakości odpowiedzi.
+
+ETAP 3 — QUIZ
+- 4 pytania A/B/C/D, jedno po drugim.
+- Format: [WYBÓR: A) ... | B) ... | C) ... | D) ...]
+- TYLKO materiał z tej lekcji. Od ogółu do szczegółu.
+- Po każdej odpowiedzi krótkie wyjaśnienie.
+
+ETAP 4 — TEKST Z LUKAMI
+- Tekst 8–12 zdań z 6–10 lukami (______).
+- TYLKO terminy z tej lekcji.
+- Uczeń wpisuje odpowiedzi jako listę numerowaną.
+- Po odpowiedzi pokaż pełny tekst z ocenionymi lukami.
+
+ETAP 5 — ŚCIĄGA PDF
+Po uzupełnieniu luk napisz:
+[PDF_READY]
+A następnie podaj w formacie JSON wszystkie dane do ściągi:
+{
+  "topic": "...",
+  "concepts": [{"term": "...", "definition": "...", "hide": true/false}],
+  "mechanisms": [{"title": "...", "description": "...", "keyword": "..."}],
+  "examples": ["...", "..."],
+  "connections": ["..."]
+}
+
+DYNAMICZNY POZIOM TRUDNOŚCI:
+Obserwuj odpowiedzi. Trafne → trudniej. Błędne → łatwiej. Bez informowania ucznia.
+
+STRUKTURA: zawsze od ogółu do szczegółu na każdym etapie.
+
+WAŻNE — FORMAT WYBORÓW:
+Gdy chcesz przedstawić opcje do kliknięcia, używaj dokładnie tego formatu:
+[WYBÓR: opcja 1 | opcja 2 | opcja 3]
+Opcje zostaną automatycznie zamienione na przyciski w interfejsie.`;
+
+// ── STAGE MANAGEMENT ──
+const STAGES = ['Profil ucznia','Analogia','Pytania sokratejskie','Quiz','Tekst z lukami','Ściąga PDF'];
+const STAGE_ICONS = ['📋','📘','🤔','✅','✍️','📄'];
+
+function updateStageUI(stage) {
+  currentStage = stage;
+  // Dots in header
+  const dots = document.getElementById('stageDots');
+  dots.innerHTML = STAGES.map((_, i) =>
+    `<div class="stage-dot ${i < stage ? 'done' : i === stage ? 'active' : ''}"></div>`
+  ).join('');
+  // Sidebar list
+  document.querySelectorAll('.stage-item').forEach(el => {
+    const s = parseInt(el.dataset.stage);
+    el.className = 'stage-item' + (s === stage ? ' active' : s < stage ? ' done' : '');
+  });
+}
+
+function detectStage(text) {
+  const t = text.toLowerCase();
+  if (t.includes('etap 1') || t.includes('analogia') || t.includes('📘')) return 1;
+  if (t.includes('etap 2') || t.includes('sokratejsk') || t.includes('🤔')) return 2;
+  if (t.includes('etap 3') || t.includes('quiz') || t.includes('✅')) return 3;
+  if (t.includes('etap 4') || t.includes('luk') || t.includes('✍️')) return 4;
+  if (t.includes('pdf_ready') || t.includes('etap 5') || t.includes('📄')) return 5;
+  return currentStage;
+}
+
+// ── MARKDOWN + CHOICES RENDERER ──
+function renderContent(text) {
+  // Extract and handle PDF data
+  if (text.includes('[PDF_READY]')) {
+    const jsonMatch = text.match(/\{[\s\S]*"topic"[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        lessonData.pdfData = JSON.parse(jsonMatch[0]);
+      } catch(e) {}
+    }
+    text = text.replace('[PDF_READY]', '').replace(/\{[\s\S]*"topic"[\s\S]*\}/, '').trim();
+  }
+
+  // Parse [WYBÓR: A | B | C] blocks — extract before markdown
+  const choices = [];
+  text = text.replace(/\[WYBÓR:\s*([^\]]+)\]/g, (match, opts) => {
+    const id = 'choice_' + choices.length;
+    choices.push({ id, opts: opts.split('|').map(o => o.trim()) });
+    return `__CHOICE_${choices.length - 1}__`;
+  });
+
+  // Simple markdown
+  text = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^---$/gm,'<hr>')
+    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    .replace(/^[-*] (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/\n/g,'<br>');
+
+  text = '<p>' + text + '</p>';
+
+  // Restore choices as button HTML
+  choices.forEach((c, i) => {
+    const btns = c.opts.map(opt =>
+      `<button class="choice-btn" onclick="selectChoice(this, '${opt.replace(/'/g,"\\'")}', '${c.id}')">${opt}</button>`
+    ).join('');
+    text = text.replace(`__CHOICE_${i}__`, `</p><div class="choices" id="${c.id}">${btns}</div><p>`);
+  });
+
+  return text.replace(/<p><\/p>/g,'').replace(/<p>\s*<\/p>/g,'');
+}
+
+function getStageBadge(stage) {
+  if (stage < 0) return '';
+  const colors = ['badge-0','badge-1','badge-2','badge-3','badge-4','badge-4'];
+  return `<div class="stage-badge ${colors[stage]}">${STAGE_ICONS[stage]} ${STAGES[stage]}</div>`;
+}
+
+// ── CHOICE HANDLER ──
+function selectChoice(btn, value, groupId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  group.querySelectorAll('.choice-btn').forEach(b => {
+    b.disabled = true;
+    b.classList.remove('selected');
+  });
+  btn.classList.add('selected');
+  setTimeout(() => sendMessage(value), 300);
+}
+
+// ── MESSAGE RENDERING ──
+function appendMessage(role, text, stage) {
+  const welcome = document.getElementById('welcomeScreen');
+  if (welcome) welcome.remove();
+
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+
+  const meta = role === 'assistant' ? 'Nauczyciel' : 'Ty';
+  const badge = role === 'assistant' ? getStageBadge(stage) : '';
+  const content = role === 'assistant' ? renderContent(text) : `<p>${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`;
+
+  div.innerHTML = `
+    <div class="message-meta">${meta}</div>
+    <div class="message-bubble">${badge}${content}</div>
+  `;
+
+  container.appendChild(div);
+
+  // PDF banner
+  if (role === 'assistant' && text.includes('[PDF_READY]') && !pdfGenerated) {
+    pdfGenerated = true;
+    const banner = document.createElement('div');
+    banner.className = 'message assistant';
+    banner.innerHTML = `
+      <div class="message-meta">System</div>
+      <div class="message-bubble">
+        <div class="pdf-banner">
+          <div>
+            <p><strong>📄 Ściąga gotowa do pobrania</strong>Wydrukuj przed zajęciami i uzupełniaj podczas wykładu.</p>
+          </div>
+          <button class="btn-pdf" onclick="generatePDF()">⬇ Pobierz PDF</button>
+        </div>
+      </div>`;
+    container.appendChild(banner);
+  }
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping() {
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'message assistant';
+  div.id = 'typingIndicator';
+  div.innerHTML = `<div class="message-meta">Nauczyciel</div><div class="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  document.getElementById('typingIndicator')?.remove();
+}
+
+// ── API CALL ──
+async function callAPI(userText) {
+  messages.push({ role: 'user', content: userText });
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, system: SYSTEM_PROMPT }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Błąd serwera');
+
+    const reply = data.content;
+    messages.push({ role: 'assistant', content: reply });
+    return reply;
+  } catch (err) {
+    throw err;
+  }
+}
+
+// ── SEND MESSAGE ──
+async function sendMessage(choiceValue) {
+  if (isLoading) return;
+
+  const input = document.getElementById('userInput');
+  const text = choiceValue || input.value.trim();
+  if (!text) return;
+
+  if (!choiceValue) input.value = '';
+  autoResize(input);
+
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  appendMessage('user', text, currentStage);
+
+  // Update profile if in stage 0 and it's a text description
+  if (currentStage === 0 && !choiceValue && text.length > 10) {
+    lessonData.profile = text;
+    document.getElementById('profileBox').innerHTML = `<strong>Twój profil</strong>${text.substring(0, 120)}${text.length > 120 ? '…' : ''}`;
+    document.getElementById('profileSection').style.display = 'block';
+  }
+  if (currentStage === 0 && choiceValue && choiceValue.includes('Znam')) {
+    lessonData.level = choiceValue;
+    const box = document.getElementById('profileBox');
+    if (box.innerHTML) box.innerHTML += `<br><em>Poziom: ${choiceValue}</em>`;
+  }
+
+  showTyping();
+
+  try {
+    const reply = await callAPI(text);
+    removeTyping();
+    const newStage = detectStage(reply);
+    if (newStage !== currentStage) updateStageUI(newStage);
+    appendMessage('assistant', reply, newStage);
+  } catch (err) {
+    removeTyping();
+    appendMessage('assistant', `⚠️ Błąd połączenia: ${err.message}. Spróbuj ponownie.`, currentStage);
+  }
+
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+// ── START LESSON ──
+async function startLesson() {
+  const topic = document.getElementById('topicInput').value.trim();
+  if (!topic) { document.getElementById('topicInput').focus(); return; }
+
+  lessonData.topic = topic;
+  messages = [];
+  pdfGenerated = false;
+  document.getElementById('messages').innerHTML = '';
+  updateStageUI(0);
+  document.getElementById('startBtn').disabled = true;
+
+  isLoading = true;
+  showTyping();
+
+  try {
+    const reply = await callAPI(`Chcę nauczyć się: ${topic}`);
+    removeTyping();
+    updateStageUI(0);
+    appendMessage('assistant', reply, 0);
+  } catch (err) {
+    removeTyping();
+    appendMessage('assistant', `⚠️ Nie udało się połączyć z serwerem. Sprawdź czy aplikacja jest poprawnie wdrożona.`, -1);
+  }
+
+  isLoading = false;
+  document.getElementById('startBtn').disabled = false;
+}
+
+// ── PDF GENERATION ──
+async function generatePDF() {
+  const data = lessonData.pdfData;
+  if (!data) { alert('Brak danych do wygenerowania ściągi.'); return; }
+
+  // Build HTML for PDF via print dialog
+  const GAP = '<span style="display:inline-block;min-width:80px;border-bottom:1.5px solid #333;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>';
+
+  const conceptsHTML = (data.concepts || []).map(c => {
+    const def = c.hide
+      ? c.definition.replace(/\b(\w{4,})\b/, GAP)
+      : c.definition;
+    return `<tr><td style="font-weight:600;padding:6px 8px;border:1px solid #ccc;width:35%;vertical-align:top">${c.term}</td><td style="padding:6px 8px;border:1px solid #ccc">${def}</td></tr>`;
+  }).join('');
+
+  const mechHTML = (data.mechanisms || []).map(m =>
+    `<div style="margin-bottom:10px"><strong>${m.title}</strong><br>${m.description.replace(m.keyword || '', GAP)}</div>`
+  ).join('');
+
+  const exHTML = (data.examples || []).map(e =>
+    `<div style="margin-bottom:12px">${e}<div style="margin-top:6px;border-bottom:1px solid #bbb;height:18px"></div></div>`
+  ).join('');
+
+  const connHTML = (data.connections || []).length
+    ? `<ul>${data.connections.map(c => `<li>${c}</li>`).join('')}</ul>` : '<em>—</em>';
+
+  const linesHTML = Array(6).fill('<div style="border-bottom:1px solid #bbb;height:22px;margin-bottom:4px"></div>').join('');
+
+  const html = `<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8">
+  <style>
+    body { font-family: 'Georgia', serif; font-size: 10pt; color: #111; margin: 0; padding: 0; }
+    .page { width: 210mm; min-height: 297mm; padding: 18mm 16mm; box-sizing: border-box; }
+    h1 { font-size: 14pt; margin: 0 0 2mm; }
+    h2 { font-size: 9pt; letter-spacing: .12em; text-transform: uppercase; color: #666; border-bottom: 1px solid #999; padding-bottom: 2mm; margin: 8mm 0 4mm; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+    .notes-line { border-bottom: 1px solid #bbb; height: 22px; margin-bottom: 3px; }
+    @media print { body { margin:0; } .page { padding: 15mm 14mm; } }
+  </style></head><body>
+  <div class="page">
+    <h1>📘 ${data.topic}</h1>
+    <div style="font-size:8.5pt;color:#888;margin-bottom:2mm">Data: _______________________ &nbsp;&nbsp; Imię: _______________________</div>
+    <hr style="border:none;border-top:2px solid #111;margin:3mm 0">
+
+    <h2>Kluczowe pojęcia</h2>
+    <table><thead><tr>
+      <th style="text-align:left;padding:5px 8px;border:1px solid #ccc;background:#f5f5f5">Pojęcie</th>
+      <th style="text-align:left;padding:5px 8px;border:1px solid #ccc;background:#f5f5f5">Definicja</th>
+    </tr></thead><tbody>${conceptsHTML}</tbody></table>
+
+    <h2>Główne mechanizmy</h2>
+    ${mechHTML}
+
+    <h2>Przykłady i zastosowania</h2>
+    ${exHTML}
+
+    <h2>Powiązania z innymi pojęciami</h2>
+    ${connHTML}
+
+    <h2>Notatki własne</h2>
+    ${linesHTML}
+  </div>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => win.print();
+}
+
+// ── UTILS ──
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// Init stage dots
+updateStageUI(-1);
+document.getElementById('topicInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startLesson();
+});
+</script>
+</body>
+</html>
